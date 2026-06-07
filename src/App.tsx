@@ -4,12 +4,8 @@ import { burstConfetti } from "./confetti.ts";
 import { ScratchCard } from "./ScratchCard.tsx";
 
 export default function App() {
-  const seen = useRef<Set<number>>(new Set());
-  const [imgIdx, setImgIdx] = useState<number>(() => {
-    const first = pickRandom(seen.current, -1);
-    seen.current.add(first);
-    return first;
-  });
+  const [imgIdx, setImgIdx] = useState(() => pickRandom(new Set<number>(), -1));
+  const seen = useRef<Set<number>>(new Set([imgIdx]));
   const [revealed, setRevealed] = useState(false);
   const confettiRef = useRef<HTMLCanvasElement>(null);
 
