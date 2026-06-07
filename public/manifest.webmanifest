@@ -1,0 +1,10 @@
+{
+  "name": "Bouquet Scratch",
+  "short_name": "Bouquet",
+  "start_url": "/bouquet-scratch/",
+  "scope": "/bouquet-scratch/",
+  "display": "standalone",
+  "background_color": "#f0e8d8",
+  "theme_color": "#f0e8d8",
+  "icons": []
+}
