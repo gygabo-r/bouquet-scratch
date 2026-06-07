@@ -50,13 +50,14 @@ The repo currently has **no app code** — only the design handoff, this PRD, an
 
 ## Images
 
-Three seasonal reveal images, all confirmed **1122 × 1402 px** (4 : 5 portrait):
+Four seasonal reveal images (~4 : 5 portrait; `object-fit: cover` handles the slight size differences):
 
-| File | Season |
-|---|---|
-| `src/assets/autumn.png` | Autumn |
-| `src/assets/spring.png` | Spring |
-| `src/assets/summer.png` | Summer |
+| File | Season | Size |
+|---|---|---|
+| `src/assets/autumn.png` | Autumn | 1122 × 1402 |
+| `src/assets/spring.png` | Spring | 1122 × 1402 |
+| `src/assets/summer.png` | Summer | 1122 × 1402 |
+| `src/assets/winter.png` | Winter | 928 × 1152 |
 
 Bundled via ES `import` so Vite hashes them and rewrites URLs with the base path. The `IMAGES` array holds the imported URLs; preload them (`new Image().src = url`) at module load so reveals are instant. To add more, drop the file in `src/assets/` and add its import to `IMAGES`.
 
@@ -217,13 +218,13 @@ Engraved text color `#6e5417` (≈16 % alpha), labels `#5f4815`.
   "display": "standalone",
   "background_color": "#f0e8d8",
   "theme_color": "#f0e8d8",
-  "icons": []
+  "icons": [{ "src": "icon.png", "sizes": "any", "type": "image/png", "purpose": "any" }]
 }
 ```
 
 - **`start_url` and `scope` must be `/bouquet-scratch/`** (the Pages sub-path). With `"/"` the installed app launches at the domain root and 404s.
-- `index.html` must include `<link rel="manifest" href="%BASE_URL%manifest.webmanifest">` and a matching `<meta name="theme-color" content="#f0e8d8">`. The `<title>` is `Bouquet Scratch`.
-- Icons: `icons` array left empty until the asset is delivered. Once provided, add 192×192, 512×512, and a maskable variant (paths base-aware).
+- `index.html` must include `<link rel="manifest" href="%BASE_URL%manifest.webmanifest">`, `<link rel="icon"/apple-touch-icon href="%BASE_URL%icon.png">`, and a matching `<meta name="theme-color" content="#f0e8d8">`. The `<title>` is `Bouquet Scratch`.
+- Icon: `public/icon.png` (1024×1024) referenced with `sizes: "any"` so browsers downscale; `purpose: "any"` (not maskable — the full-bleed art would crop in a maskable safe-zone). If a maskable/padded variant is wanted later, add it as a second entry.
 
 ---
 

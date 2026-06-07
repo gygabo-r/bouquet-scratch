@@ -1,9 +1,10 @@
 import autumn from "./assets/autumn.png";
 import spring from "./assets/spring.png";
 import summer from "./assets/summer.png";
+import winter from "./assets/winter.png";
 
 // Imported URLs are hashed and base-path-aware (see vite.config base).
-export const IMAGES: string[] = [autumn, spring, summer];
+export const IMAGES: string[] = [autumn, spring, summer, winter];
 
 // Preload so reveals are instant.
 IMAGES.forEach((src) => {
