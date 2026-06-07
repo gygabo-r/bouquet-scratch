@@ -123,7 +123,7 @@ Decorative elements on top of the canvas layer (pointer-events none):
    - `BRUSH = 24` (CSS px radius).
    - Track the previous point; reset it to `null` on pointer up so segments don't jump across gaps.
 3. **No auto-clear of the foil.** The remaining foil is **never** wiped automatically — whatever the user doesn't scratch stays on screen as leftover flecks (like a real scratch ticket). The canvas is not faded out.
-4. **Done detection → celebrate (but don't clear)**: every ~6 move events and on pointer-up, call `getImageData` over the whole canvas and sample the alpha channel with a stride (every 50th pixel). Compute the cleared fraction (`alpha === 0`). When it first reaches **`REVEAL_THRESHOLD = 0.90`**, mark `revealed = true` **once** (guarded): fire the flash animation + confetti, show the verdict line, and set the canvas `pointer-events: none`. The leftover foil flecks remain in place.
+4. **Done detection → celebrate (but don't clear)**: every ~6 move events and on pointer-up, call `getImageData` over the whole canvas and sample the alpha channel with a stride (every 50th pixel). Compute the cleared fraction (`alpha === 0`). When it first reaches **`REVEAL_THRESHOLD = 0.99`**, mark `revealed = true` **once** (guarded): fire the flash animation + confetti and show the verdict line. The leftover foil flecks remain in place. **The canvas stays interactive after reveal** — the user can keep scratching off whatever foil is left (detection just stops re-firing once revealed).
 5. **New image** ("I want new"): pick a not-yet-seen random index, add it to the seen set, reset `revealed`, and repaint a fresh full-coverage foil (re-run setup).
 
 Input must support **both** mouse (`mousedown / mousemove / mouseup / mouseleave`) and touch (`touchstart / touchmove / touchend`); read `e.touches[0]` when present. Call `e.preventDefault()` on touch events to stop page scroll/selection. Repaint the foil on window resize (debounced ~150 ms) **only when not yet revealed**.
@@ -200,7 +200,7 @@ Engraved text color `#6e5417` (≈16 % alpha), labels `#5f4815`.
 | Constant | Value |
 |---|---|
 | `BRUSH` | `24` (CSS px scratch radius) |
-| `REVEAL_THRESHOLD` | `0.90` (cleared fraction that marks the ticket revealed — fires effects; does **not** clear the leftover foil) |
+| `REVEAL_THRESHOLD` | `0.99` (cleared fraction that marks the ticket revealed — fires effects once; does **not** clear the leftover foil, and the canvas stays scratchable afterward) |
 | Sample stride | every 50th pixel's alpha; detection runs every ~6 moves + on pointer-up |
 | Flash duration | `700ms` |
 | Verdict fade | `400ms` |
@@ -243,7 +243,7 @@ Engraved text color `#6e5417` (≈16 % alpha), labels `#5f4815`.
 ## Known Limitations (accepted for this prototype)
 
 - **No accessibility support.** The reveal is mouse/touch only — no keyboard path, no ARIA, `img` has empty `alt`, and pinch-zoom is disabled (`user-scalable=no`) so scratching doesn't pan the page. Confetti and flash do not honor `prefers-reduced-motion` (the finger-hint animation does, as inherited from the design). This is an explicit trade-off, not an oversight.
-- **High threshold by design.** Reaching 90% cleared takes deliberate scratching and there is no progress indicator — intended.
+- **High threshold by design.** Reaching 99% cleared requires scratching nearly the entire panel and there is no progress indicator — intended.
 
 ## Testing
 

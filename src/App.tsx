@@ -3,7 +3,7 @@ import { IMAGES, pickRandom } from "./images.ts";
 import { paintFoil } from "./foil.ts";
 import { burstConfetti } from "./confetti.ts";
 
-const REVEAL_THRESHOLD = 0.9; // cleared fraction that marks the ticket revealed
+const REVEAL_THRESHOLD = 0.99; // cleared fraction that marks the ticket revealed
 const BRUSH = 24; // scratch radius in CSS px
 
 interface ScratchCardProps {
@@ -124,7 +124,6 @@ function ScratchCard({ imgIdx, revealed, onRevealed }: ScratchCardProps) {
   };
 
   const down = (e: React.MouseEvent | React.TouchEvent) => {
-    if (revealed) return;
     e.preventDefault();
     drawing.current = true;
     if (!startedRef.current) {
@@ -137,15 +136,18 @@ function ScratchCard({ imgIdx, revealed, onRevealed }: ScratchCardProps) {
   };
 
   const move = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!drawing.current || revealed) return;
+    if (!drawing.current) return;
     e.preventDefault();
     const p = pos(e.nativeEvent);
     scratch(p.x, p.y);
-    if (++moveCount.current % 6 === 0 && computeCleared() >= REVEAL_THRESHOLD) finish();
+    // Detection only matters until the reveal fires; after that the user is
+    // free to keep scratching off whatever foil is left.
+    if (!revealedRef.current && ++moveCount.current % 6 === 0 && computeCleared() >= REVEAL_THRESHOLD)
+      finish();
   };
 
   const up = () => {
-    if (drawing.current && !revealed && computeCleared() >= REVEAL_THRESHOLD) finish();
+    if (drawing.current && !revealedRef.current && computeCleared() >= REVEAL_THRESHOLD) finish();
     drawing.current = false;
     last.current = null;
   };
@@ -157,7 +159,6 @@ function ScratchCard({ imgIdx, revealed, onRevealed }: ScratchCardProps) {
       <canvas
         ref={canvasRef}
         className="scratch-canvas"
-        style={{ pointerEvents: revealed ? "none" : "auto" }}
         onMouseDown={down}
         onMouseMove={move}
         onMouseUp={up}
