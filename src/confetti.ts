@@ -1,14 +1,14 @@
 const CONFETTI_COLORS = ["#c9a227", "#e9d585", "#d6453d", "#2f9c8b", "#ffffff", "#e8923a"];
 
-const PARTICLE_COUNT = 130;
+const FLAKE_COUNT = 130;
 const SPAWN_Y_FRACTION = 0.42; // launch height as a fraction of canvas height
 const DRAG = 0.99; // horizontal velocity damping per frame
-const FADE_START_MS = 1400; // particles begin fading after this long
+const FADE_START_MS = 1400; // flakes begin fading after this long
 const FADE_PER_FRAME = 0.04; // life lost per frame once fading
 const MAX_DURATION_MS = 3000; // hard stop for the animation
-const OFFSCREEN_MARGIN = 30; // px below the canvas before a particle is "dead"
+const OFFSCREEN_MARGIN = 30; // px below the canvas before a flake is "dead"
 
-class Particle {
+class Flake {
   x: number;
   y: number;
   vx: number; // velocity x (px/frame)
@@ -79,7 +79,7 @@ export function burstConfetti(canvas: HTMLCanvasElement): () => void {
   canvas.height = H * dpr;
   ctx.scale(dpr, dpr);
 
-  const particles = Array.from({ length: PARTICLE_COUNT }, () => new Particle(W, H));
+  const flakes = Array.from({ length: FLAKE_COUNT }, () => new Flake(W, H));
 
   let raf = 0;
   const start = performance.now();
@@ -88,10 +88,10 @@ export function burstConfetti(canvas: HTMLCanvasElement): () => void {
     ctx.clearRect(0, 0, W, H);
     const fading = elapsed > FADE_START_MS;
     let alive = false;
-    for (const p of particles) {
-      p.update(fading);
-      p.draw(ctx);
-      if (p.isAlive(H)) alive = true;
+    for (const flake of flakes) {
+      flake.update(fading);
+      flake.draw(ctx);
+      if (flake.isAlive(H)) alive = true;
     }
     if (alive && elapsed < MAX_DURATION_MS) raf = requestAnimationFrame(frame);
     else ctx.clearRect(0, 0, W, H);
