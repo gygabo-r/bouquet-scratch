@@ -1,14 +1,26 @@
-# PRD: Scratch-to-Reveal Ticket
+# PRD: Bouquet Scratch
+
+> **Status:** one-off prototype. Keep scope tight; don't over-engineer.
 
 ## Overview
 
-A single-screen PWA: a gold foil "scratch-off lottery ticket". A foil panel sits over a randomly chosen seasonal image; the user drags (mouse or touch) to scratch the foil away and reveal the image beneath. A single **"I want new"** button loads another random image.
+**Bouquet Scratch** — a single-screen PWA: a gold foil "scratch-off lottery ticket". A foil panel sits over a randomly chosen seasonal image; the user drags (mouse or touch) to scratch the foil away and reveal the image beneath. A single **"I want new"** button loads another random image.
 
 The app tracks which images have been shown **within the current session** and avoids repeating one until the whole set has cycled through, then resets.
 
-No title, counter, ticket number, or other chrome — just the ticket and one button.
+No on-screen title, counter, ticket number, or other chrome — just the ticket and one button. ("Bouquet Scratch" is the app name used in the `<title>` and PWA manifest only.)
 
 ---
+
+## Project Scaffold (prerequisite)
+
+The repo currently has **no app code** — only the design handoff, this PRD, and the deploy workflow. Before anything builds or deploys, scaffold a Vite app:
+
+- `npm create vite@latest` with the **React + TypeScript** template.
+- Commit `package.json` **and `package-lock.json`** (the deploy workflow's `npm ci` and Node cache both require the lockfile).
+- `package.json` must expose `dev`, `build`, and `preview` scripts (Vite defaults are fine).
+- `vite.config.ts` must set **`base: '/bouquet-scratch/'`** so all asset URLs resolve under the GitHub Pages sub-path.
+- Move the three images from `design_handoff_scratch_ticket/assets/` into the app's `src/assets/` and reference them via **ES `import`** (so Vite hashes them and rewrites the URL with the base path). Do **not** use hardcoded `"assets/…"` strings — Vite won't rewrite those and they'll 404 on Pages.
 
 ## Deployment
 
@@ -19,8 +31,9 @@ No title, counter, ticket number, or other chrome — just the ticket and one bu
   2. Upload `dist/` as a Pages artifact
   3. Deploy via the official `actions/deploy-pages` action
 - Concurrent deployments are cancelled (only the latest push wins).
-- **Vite base**: must be set to `'/bouquet-scratch/'` in `vite.config.ts` so all asset paths resolve correctly under the sub-path.
-- GitHub repo settings: **Pages → Source** must be set to **"GitHub Actions"**.
+- **Vite base**: `'/bouquet-scratch/'` (see Scaffold above).
+- GitHub repo settings: **Pages → Source** must be set to **"GitHub Actions"** (one-time manual step).
+- No `.nojekyll` needed — the Actions artifact deploy does not run Jekyll.
 
 ---
 
@@ -29,6 +42,7 @@ No title, counter, ticket number, or other chrome — just the ticket and one bu
 - **React 19 + TypeScript**, bundled with **Vite**
 - **PWA** — installable only, no offline/caching requirements
   - A `manifest.webmanifest` in `public/` with a `<link rel="manifest">` in `index.html`; Vite copies it to the build output automatically — no plugin needed
+  - Manifest `link` href, `start_url`, `scope`, and icon paths must be **base-path-aware** (use `%BASE_URL%` in `index.html` / relative paths), not absolute `/…` — otherwise they break under the sub-path (see PWA Manifest section)
   - Icon asset to be supplied separately (manifest `icons` array left empty in the interim)
   - No in-app install prompt or pinning UI — users who know how to pin can; others don't need to
 
@@ -36,15 +50,15 @@ No title, counter, ticket number, or other chrome — just the ticket and one bu
 
 ## Images
 
-Three seasonal reveal images, all **1122 × 1402 px** (4 : 5 portrait):
+Three seasonal reveal images, all confirmed **1122 × 1402 px** (4 : 5 portrait):
 
 | File | Season |
 |---|---|
-| `assets/autumn.png` | Autumn |
-| `assets/spring.png` | Spring |
-| `assets/summer.png` | Summer |
+| `src/assets/autumn.png` | Autumn |
+| `src/assets/spring.png` | Spring |
+| `src/assets/summer.png` | Summer |
 
-Images are static assets bundled with the app. To add more, extend the `IMAGES` array.
+Bundled via ES `import` so Vite hashes them and rewrites URLs with the base path. The `IMAGES` array holds the imported URLs; preload them (`new Image().src = url`) at module load so reveals are instant. To add more, drop the file in `src/assets/` and add its import to `IMAGES`.
 
 ---
 
@@ -53,6 +67,7 @@ Images are static assets bundled with the app. To add more, extend the `IMAGES` 
 ### Layout
 
 - Full-viewport stage, content centered on both axes.
+- **The whole ticket (window + verdict + button) must fit within the viewport with no page scrolling.** On short screens, let the window shrink to fit (cap its height, e.g. `max-height`, while preserving the 4:5 aspect ratio) so the button stays visible without scrolling.
 - Warm-cream radial background + subtle film-grain overlay (fixed, `pointer-events: none`).
 - A single centered **ticket card**: `width: min(440px, 100%)`, flex column.
 - Card padding `18px 18px 16px`, `border-radius: 22px`, 1 px border, layered drop shadow.
@@ -100,15 +115,15 @@ Decorative elements on top of the canvas layer (pointer-events none):
 
 ### Scratch Mechanic
 
-1. **Setup**: size the canvas bitmap to its CSS box × `devicePixelRatio`, then `ctx.setTransform(dpr,0,0,dpr,0,0)` so all drawing uses CSS pixels. Paint the foil (gradient + sheen bands + repeated diagonal "SCRATCH HERE" text + grain + coin + labels). Use `{ willReadFrequently: true }` on `getContext`.
+1. **Setup**: size the canvas bitmap to its CSS box × `devicePixelRatio`, then `ctx.setTransform(dpr,0,0,dpr,0,0)` so all drawing uses CSS pixels. Paint the foil (gradient + sheen bands + repeated diagonal "SCRATCH HERE" text + grain + coin + labels). Use `{ willReadFrequently: true }` on `getContext`. **Wait for `document.fonts.ready` before the first foil paint** (and repaint if fonts resolve later) so the engraved Archivo/Space Mono text isn't baked into the bitmap with a fallback font.
 2. **Scratching**: on pointer down/move, draw with `ctx.globalCompositeOperation = "destination-out"`:
    - A round-capped line from the previous point to the current point, `lineWidth = BRUSH * 2`.
    - A filled arc of radius `BRUSH` at the current point (so taps and direction changes erase cleanly).
    - `BRUSH = 24` (CSS px radius).
    - Track the previous point; reset it to `null` on pointer up so segments don't jump across gaps.
-3. **No auto-reveal** — the foil must be scratched away entirely by the user. There is no threshold that clears the rest automatically.
-4. **Reveal**: when the user lifts the pointer after scratching, the reveal is declared when the foil is gone enough that the image is clearly visible. Concretely: on pointer up, if the cleared fraction (sampled alpha) exceeds **`REVEAL_THRESHOLD = 0.90`**, trigger reveal — fade the canvas `opacity → 0` over 620 ms (CSS transition), set `pointer-events: none`, fire the flash animation + confetti, show the verdict line.
-5. **New image** ("I want new"): pick a not-yet-seen random index, add it to the seen set, reset `revealed`, and repaint a fresh foil at full opacity. Scroll the window to top if needed.
+3. **No auto-clear of the foil.** The remaining foil is **never** wiped automatically — whatever the user doesn't scratch stays on screen as leftover flecks (like a real scratch ticket). The canvas is not faded out.
+4. **Done detection → celebrate (but don't clear)**: every ~6 move events and on pointer-up, call `getImageData` over the whole canvas and sample the alpha channel with a stride (every 50th pixel). Compute the cleared fraction (`alpha === 0`). When it first reaches **`REVEAL_THRESHOLD = 0.90`**, mark `revealed = true` **once** (guarded): fire the flash animation + confetti, show the verdict line, and set the canvas `pointer-events: none`. The leftover foil flecks remain in place.
+5. **New image** ("I want new"): pick a not-yet-seen random index, add it to the seen set, reset `revealed`, and repaint a fresh full-coverage foil (re-run setup).
 
 Input must support **both** mouse (`mousedown / mousemove / mouseup / mouseleave`) and touch (`touchstart / touchmove / touchend`); read `e.touches[0]` when present. Call `e.preventDefault()` on touch events to stop page scroll/selection. Repaint the foil on window resize (debounced ~150 ms) **only when not yet revealed**.
 
@@ -184,8 +199,8 @@ Engraved text color `#6e5417` (≈16 % alpha), labels `#5f4815`.
 | Constant | Value |
 |---|---|
 | `BRUSH` | `24` (CSS px scratch radius) |
-| `REVEAL_THRESHOLD` | `0.90` (fraction of foil cleared before reveal triggers on pointer up) |
-| Reveal fade | `620ms ease` |
+| `REVEAL_THRESHOLD` | `0.90` (cleared fraction that marks the ticket revealed — fires effects; does **not** clear the leftover foil) |
+| Sample stride | every 50th pixel's alpha; detection runs every ~6 moves + on pointer-up |
 | Flash duration | `700ms` |
 | Verdict fade | `400ms` |
 
@@ -195,9 +210,10 @@ Engraved text color `#6e5417` (≈16 % alpha), labels `#5f4815`.
 
 ```json
 {
-  "name": "Scratch & Reveal",
-  "short_name": "Scratch",
-  "start_url": "/",
+  "name": "Bouquet Scratch",
+  "short_name": "Bouquet",
+  "start_url": "/bouquet-scratch/",
+  "scope": "/bouquet-scratch/",
   "display": "standalone",
   "background_color": "#f0e8d8",
   "theme_color": "#f0e8d8",
@@ -205,7 +221,9 @@ Engraved text color `#6e5417` (≈16 % alpha), labels `#5f4815`.
 }
 ```
 
-Icons: placeholder until the asset is delivered. Once the icon file is provided, add the required sizes (192 × 192, 512 × 512, maskable variant) to the manifest.
+- **`start_url` and `scope` must be `/bouquet-scratch/`** (the Pages sub-path). With `"/"` the installed app launches at the domain root and 404s.
+- `index.html` must include `<link rel="manifest" href="%BASE_URL%manifest.webmanifest">` and a matching `<meta name="theme-color" content="#f0e8d8">`. The `<title>` is `Bouquet Scratch`.
+- Icons: `icons` array left empty until the asset is delivered. Once provided, add 192×192, 512×512, and a maskable variant (paths base-aware).
 
 ---
 
@@ -215,3 +233,13 @@ Icons: placeholder until the asset is delivered. Once the icon file is provided,
 - Ticket number, series label, or any other header chrome.
 - Server-side logic, authentication, or persistence beyond the current session.
 - Auto-clearing the foil — the user must scratch it themselves.
+- Offline / service-worker caching (installable only).
+
+## Known Limitations (accepted for this prototype)
+
+- **No accessibility support.** The reveal is mouse/touch only — no keyboard path, no ARIA, `img` has empty `alt`, and pinch-zoom is disabled (`user-scalable=no`) so scratching doesn't pan the page. Confetti and flash do not honor `prefers-reduced-motion` (the finger-hint animation does, as inherited from the design). This is an explicit trade-off, not an oversight.
+- **High threshold by design.** Reaching 90% cleared takes deliberate scratching and there is no progress indicator — intended.
+
+## Testing
+
+Manual / by hand. No automated test suite for this prototype. Suggested smoke checks: scratch to reveal fires confetti + verdict exactly once; leftover flecks remain; "I want new" cycles all three images without repeats then resets; works with both mouse and touch; layout fits without scrolling on a phone-sized viewport; deployed build loads images, fonts, and manifest under the `/bouquet-scratch/` sub-path.
