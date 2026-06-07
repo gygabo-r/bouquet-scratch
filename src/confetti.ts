@@ -19,12 +19,15 @@ interface Particle {
 export function burstConfetti(canvas: HTMLCanvasElement): () => void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return () => {};
+  // Capture as a non-null const so the narrowing survives into `frame` below
+  // (TS widens `ctx` back to `... | null` inside the nested closure).
+  const c = ctx;
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.clientWidth;
   const H = canvas.clientHeight;
   canvas.width = W * dpr;
   canvas.height = H * dpr;
-  ctx.scale(dpr, dpr);
+  c.scale(dpr, dpr);
 
   const parts: Particle[] = [];
   const n = 130;
@@ -48,7 +51,7 @@ export function burstConfetti(canvas: HTMLCanvasElement): () => void {
   const start = performance.now();
   function frame(t: number) {
     const elapsed = t - start;
-    ctx!.clearRect(0, 0, W, H);
+    c.clearRect(0, 0, W, H);
     let alive = false;
     for (const p of parts) {
       p.vy += p.g;
@@ -58,21 +61,21 @@ export function burstConfetti(canvas: HTMLCanvasElement): () => void {
       p.rot += p.vr;
       if (elapsed > 1400) p.life -= 0.04;
       if (p.life > 0 && p.y < H + 30) alive = true;
-      ctx!.save();
-      ctx!.globalAlpha = Math.max(0, p.life);
-      ctx!.translate(p.x, p.y);
-      ctx!.rotate(p.rot);
-      ctx!.fillStyle = p.c;
-      if (p.shape === "r") ctx!.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6);
+      c.save();
+      c.globalAlpha = Math.max(0, p.life);
+      c.translate(p.x, p.y);
+      c.rotate(p.rot);
+      c.fillStyle = p.c;
+      if (p.shape === "r") c.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6);
       else {
-        ctx!.beginPath();
-        ctx!.arc(0, 0, p.s / 2, 0, Math.PI * 2);
-        ctx!.fill();
+        c.beginPath();
+        c.arc(0, 0, p.s / 2, 0, Math.PI * 2);
+        c.fill();
       }
-      ctx!.restore();
+      c.restore();
     }
     if (alive && elapsed < 3000) raf = requestAnimationFrame(frame);
-    else ctx!.clearRect(0, 0, W, H);
+    else c.clearRect(0, 0, W, H);
   }
   raf = requestAnimationFrame(frame);
   return () => cancelAnimationFrame(raf);
