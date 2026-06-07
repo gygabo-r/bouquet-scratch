@@ -218,13 +218,17 @@ Engraved text color `#6e5417` (≈16 % alpha), labels `#5f4815`.
   "display": "standalone",
   "background_color": "#f0e8d8",
   "theme_color": "#f0e8d8",
-  "icons": [{ "src": "icon.png", "sizes": "any", "type": "image/png", "purpose": "any" }]
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }
 ```
 
 - **`start_url` and `scope` must be `/bouquet-scratch/`** (the Pages sub-path). With `"/"` the installed app launches at the domain root and 404s.
-- `index.html` must include `<link rel="manifest" href="%BASE_URL%manifest.webmanifest">`, `<link rel="icon"/apple-touch-icon href="%BASE_URL%icon.png">`, and a matching `<meta name="theme-color" content="#f0e8d8">`. The `<title>` is `Bouquet Scratch`.
-- Icon: `public/icon.png` (1024×1024) referenced with `sizes: "any"` so browsers downscale; `purpose: "any"` (not maskable — the full-bleed art would crop in a maskable safe-zone). If a maskable/padded variant is wanted later, add it as a second entry.
+- `index.html` includes `<link rel="manifest" href="%BASE_URL%manifest.webmanifest">`, `<link rel="icon" href="%BASE_URL%icon-192.png">`, `<link rel="apple-touch-icon" href="%BASE_URL%icon-maskable-512.png">` (opaque, so iOS doesn't render transparency as black), and `<meta name="theme-color" content="#f0e8d8">`. The `<title>` is `Bouquet Scratch`.
+- Icons live in `public/`, generated from `icon-src/icon.png` (1024×1024) via ImageMagick: 192 and 512 `purpose: "any"`, plus a 512 `maskable` with the art scaled to 80% on a `#f0e8d8` background so it survives Android's mask safe-zone. To regenerate, re-run the `convert` resize/extent commands.
 
 ---
 
